@@ -9,6 +9,11 @@ text file:
 
 ![Screenshot](screenshot.jpg "Screenshot")
 
+You'll notice that there's a `[text]` hyperlink added to the top of each thumbpanel when a companion
+text file is present for that image. If you click the hyperlink, you can view/edit the text:
+
+![Screenshot](textedit.png "Editing text")
+
 ### How do I use it?
 
 Clone the repo and build the extension jar with maven:
