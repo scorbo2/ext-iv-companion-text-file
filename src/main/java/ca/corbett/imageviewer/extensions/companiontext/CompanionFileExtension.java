@@ -32,6 +32,18 @@ import java.util.logging.Logger;
  * an image, and have that file be displayable by adding a hyperlink to the top of the
  * thumbnail panel. If the image is renamed, moved, copied, symlinked, or deleted, this extension
  * will make sure the same operation happens to the companion file as needed.
+ * <p>
+ *     <b>Example:</b> given an image named abcd.jpg, you can create a text file in the
+ *     same directory with the name abcd.txt - this extension will detect the existence of
+ *     that text file the next time you browse to that directory. A hyperlink will be added
+ *     to the top of the image thumbnail panel. Clicking the hyperlink will open a
+ *     text view/edit dialog with the contents of the text file.
+ * </p>
+ * <p>
+ *     <b>Configuration</b> - the font size for the generated hyperlinks is configurable.
+ *     You can find it on the "Thumbnails" tab of the properties dialog after enabling
+ *     this extension.
+ * </p>
  *
  * @author scorbo2
  */
@@ -79,11 +91,18 @@ public class CompanionFileExtension extends ImageViewerExtension {
         }
         File textFile = new File(srcFile.getParentFile(), FilenameUtils.getBaseName(srcFile.getName()) + ".txt");
         if (textFile.exists()) {
-            JPanel wrapperPanel = new JPanel();
-            wrapperPanel.addMouseListener(new RedispatchingMouseAdapter());
-            wrapperPanel.setBackground(thumbPanel.getBackground());
-            thumbPanel.setExtraProperty("companionFileWrapperPanel", wrapperPanel);
-            wrapperPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+
+            // Assuming there will be other CompanionFileExtensions for different companion file
+            // types. It's therefore possible that one of the others has already created the wrapper
+            // panel, and in that case we can just use it. If not, we will create it.
+            JPanel wrapperPanel = (JPanel)thumbPanel.getExtraProperty("companionFileWrapperPanel");
+            if (wrapperPanel == null) {
+                wrapperPanel = new JPanel();
+                wrapperPanel.addMouseListener(new RedispatchingMouseAdapter());
+                wrapperPanel.setBackground(thumbPanel.getBackground());
+                thumbPanel.setExtraProperty("companionFileWrapperPanel", wrapperPanel);
+                wrapperPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+            }
 
             if (textFile.exists()) {
                 JLabel textFileLabel = createLabel("[text]");
@@ -124,7 +143,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
 
     /**
      * Invoked when the image that this thumb panel represents has been renamed. We respond
-     * to this by updating the hyperlinks to point to the new companion file.
+     * to this by updating the hyperlink to point to the new companion file.
      * Note that we don't move the companion files here! File operations are handled
      * in preImageOperation() instead of here. This is the final step, invoked after the file
      * has been renamed, and we just need to update the stale hyperlinks to point to the
