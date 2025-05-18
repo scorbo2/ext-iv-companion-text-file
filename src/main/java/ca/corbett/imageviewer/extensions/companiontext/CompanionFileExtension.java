@@ -52,7 +52,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
     private static final Logger logger = Logger.getLogger(CompanionFileExtension.class.getName());
 
     private static final String EXT_INFO = "/ca/corbett/imageviewer/extensions/companiontext/extInfo.json";
-    private static final String fontSizePropName = "Thumbnails.Companion text file.linkFontSize";
+    private static final String fontSizePropName = "Thumbnails.Companion files.linkFontSize";
 
     private final AppExtensionInfo extInfo;
 
@@ -176,7 +176,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
 
         // Special case: if we are being notified about an operation that's happening to one
         // of our companion files, just ignore it:
-        if (srcFile.getName().toLowerCase().endsWith(".txt") || srcFile.getName().toLowerCase().endsWith(".json")) {
+        if (srcFile.getName().toLowerCase().endsWith(".txt")) {
             return;
         }
 
