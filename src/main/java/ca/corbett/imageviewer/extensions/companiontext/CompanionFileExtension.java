@@ -167,6 +167,8 @@ public class CompanionFileExtension extends ImageViewerExtension {
      * or a move. We respond to this by doing the equivalent action on the companion files,
      * if they exist.
      *
+     * TODO **ALL** of this logic should move into the application
+     *
      * @param opType      The type of operation that's happening.
      * @param srcFile     The image file being operated on.
      * @param destination For non-delete operations, this is the destination of the operation.
@@ -244,25 +246,27 @@ public class CompanionFileExtension extends ImageViewerExtension {
 
     /**
      * We want to prevent our companion files from being flagged as aliens, so we hook into
-     * this extension point and return false here if the alien in question is actually
-     * one of our guys.
+     * this extension point and return true if the given file is a text file.
      *
-     * @param alienFile The suspected alien file.
-     * @return false if the file is a companion file, true otherwise.
+     * @param candidateFile The file in question.
+     * @return true if the file is a companion text file.
      */
     @Override
-    public boolean isFileAlien(File alienFile) {
+    public boolean isCompanionFile(File candidateFile) {
         // First make sure it's a file that we would work with:
-        String name = alienFile.getName().toLowerCase();
+        String name = candidateFile.getName().toLowerCase();
         if (!name.endsWith(".txt")) {
-            return true;
+            return false;
         }
 
         // Now make sure there's an image file with a matching name.
         // I hate that this code is case-sensitive...
+        //
+        // TODO this logic should move into the application
+        //      basically we should never get this request if it DOESN'T match the base name of an image.
         String[] imageExtensions = new String[]{"gif", "GIF", "jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "tiff", "bmp"};
-        File dir = alienFile.getParentFile();
-        String basename = FilenameUtils.getBaseName(alienFile.getName());
+        File dir = candidateFile.getParentFile();
+        String basename = FilenameUtils.getBaseName(candidateFile.getName());
         boolean matchingImageFound = false;
         for (String ext : imageExtensions) {
             File test = new File(dir, basename + "." + ext);
@@ -271,7 +275,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
                 break;
             }
         }
-        return !matchingImageFound;
+        return matchingImageFound;
     }
 
     /**
