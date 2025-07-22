@@ -69,7 +69,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
     }
 
     @Override
-    public List<AbstractProperty> getConfigProperties() {
+    protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new IntegerProperty(fontSizePropName, "Hyperlink font size", 10, 8, 16, 1));
         return list;
@@ -163,88 +163,6 @@ public class CompanionFileExtension extends ImageViewerExtension {
     }
 
     /**
-     * Invoked before an ImageOperation is performed - this can be a copy, a delete, a symlink,
-     * or a move. We respond to this by doing the equivalent action on the companion files,
-     * if they exist.
-     *
-     * TODO **ALL** of this logic should move into the application
-     *
-     * @param opType      The type of operation that's happening.
-     * @param srcFile     The image file being operated on.
-     * @param destination For non-delete operations, this is the destination of the operation.
-     */
-    @Override
-    public void preImageOperation(ImageOperation.Type opType, File srcFile, File destination) {
-
-        // Special case: if we are being notified about an operation that's happening to one
-        // of our companion files, just ignore it:
-        if (srcFile.getName().toLowerCase().endsWith(".txt")) {
-            return;
-        }
-
-        String opName = "moveSingleFile";
-        switch (opType) {
-            case COPY:
-                opName = "copySingleFile";
-                break;
-            case SYMLINK:
-                opName = "linkSingleFile";
-                break;
-            case DELETE:
-                opName = "delete";
-                break;
-        }
-        File companionTextFileSrc = new File(srcFile.getParentFile(),
-                                             FilenameUtils.getBaseName(srcFile.getName()) + ".txt");
-        File companionTextFileDest = null;
-        if (destination != null) {
-            companionTextFileDest = new File(destination.getParentFile(),
-                                             FilenameUtils.getBaseName(destination.getName()) + ".txt");
-            if (companionTextFileSrc.exists()) {
-                logger.log(Level.INFO, "{0}: {1} -> {2}",
-                           new Object[]{opName, companionTextFileSrc.getAbsolutePath(), companionTextFileDest.getAbsolutePath()});
-                if (companionTextFileDest.exists()) {
-                    companionTextFileDest.delete();
-                }
-            }
-        }
-        try {
-            switch (opType) {
-                case COPY:
-                    if (companionTextFileSrc.exists() && companionTextFileDest != null) {
-                        FileUtils.copyFile(companionTextFileSrc, companionTextFileDest);
-                    }
-                    break;
-
-                case SYMLINK:
-                    if (companionTextFileSrc.exists() && companionTextFileDest != null) {
-                        Path target = FileSystems.getDefault().getPath(companionTextFileSrc.getAbsolutePath());
-                        Path link = FileSystems.getDefault().getPath(companionTextFileDest.getAbsolutePath());
-                        java.nio.file.Files.createSymbolicLink(link, target);
-                    }
-                    break;
-
-                case MOVE:
-                    if (companionTextFileSrc.exists() && companionTextFileDest != null) {
-                        FileUtils.moveFile(companionTextFileSrc, companionTextFileDest);
-                    }
-                    break;
-
-                case DELETE:
-                    if (companionTextFileSrc.exists()) {
-                        logger.log(Level.INFO, "delete: {0}", companionTextFileSrc.getAbsolutePath());
-                        companionTextFileSrc.delete();
-                    }
-                    break;
-            }
-        }
-        catch (IOException ioe) {
-            // Extensions can't stop processing, so just log it:
-            logger.log(Level.INFO, "{0}: Caught exception while processing companion file: " + ioe.getMessage(), ioe);
-        }
-    }
-
-    /**
      * We want to prevent our companion files from being flagged as aliens, so we hook into
      * this extension point and return true if the given file is a text file.
      *
@@ -276,6 +194,19 @@ public class CompanionFileExtension extends ImageViewerExtension {
             }
         }
         return matchingImageFound;
+    }
+
+    @Override
+    public List<File> getCompanionFiles(File imageFile) {
+        List<File> companions = new ArrayList<>();
+
+        // Check if a matching .txt file exists in same dir:
+        File testFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName())+".txt");
+        if (testFile.exists()) {
+            companions.add(testFile);
+        }
+
+        return companions;
     }
 
     /**
