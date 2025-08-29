@@ -1,9 +1,9 @@
 {
   "name": "Companion text files",
   "author": "steve@corbett.ca",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "targetAppName": "ImageViewer",
-  "targetAppVersion": "2.1",
+  "targetAppVersion": "2.2",
   "shortDescription": "Handles text files alongside each image",
   "longDescription": "If a .txt file exists with the same base name as an image, this extension will allow viewing/editing of it, and will handle moving, deleting, and renaming the companion file as the image is moved, renamed, or deleted."
 }

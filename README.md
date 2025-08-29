@@ -27,14 +27,14 @@ mvn package
 Now you can copy the extension jar to wherever you keep your imageviewer extensions:
 
 ```shell
-cp target/ext-iv-companion-text-file-2.1.0-SNAPSHOT.jar ~/.ImageViewer/extensions
+cp target/ext-iv-companion-text-file-2.2.0-SNAPSHOT.jar ~/.ImageViewer/extensions
 ```
 
 Then restart imageviewer and you can start using the extension.
 
 ### Requirements
 
-Imageviewer 2.1 or higher.
+Imageviewer 2.2 or higher.
 
 ### License
 
