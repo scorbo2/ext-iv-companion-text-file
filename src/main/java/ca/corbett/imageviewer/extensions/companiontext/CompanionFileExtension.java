@@ -59,13 +59,17 @@ public class CompanionFileExtension extends ImageViewerExtension {
     public CompanionFileExtension() {
         extInfo = AppExtensionInfo.fromExtensionJar(getClass(), EXT_INFO);
         if (extInfo == null) {
-            throw new RuntimeException("FullScreenExtension: can't parse extInfo.json!");
+            throw new RuntimeException("CompanionFileExtension: can't parse extInfo.json!");
         }
     }
 
     @Override
     public AppExtensionInfo getInfo() {
         return extInfo;
+    }
+
+    @Override
+    public void loadJarResources() {
     }
 
     @Override
