@@ -2,14 +2,12 @@ package ca.corbett.imageviewer.extensions.companiontext;
 
 import ca.corbett.extras.LookAndFeelManager;
 import ca.corbett.imageviewer.AppConfig;
-import ca.corbett.imageviewer.ImageOperation;
 import ca.corbett.imageviewer.extensions.ImageViewerExtension;
 import ca.corbett.imageviewer.ui.ThumbPanel;
 import ca.corbett.extensions.AppExtensionInfo;
 import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.IntegerProperty;
 import ca.corbett.extras.RedispatchingMouseAdapter;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import javax.swing.JLabel;
@@ -19,9 +17,6 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -59,13 +54,17 @@ public class CompanionFileExtension extends ImageViewerExtension {
     public CompanionFileExtension() {
         extInfo = AppExtensionInfo.fromExtensionJar(getClass(), EXT_INFO);
         if (extInfo == null) {
-            throw new RuntimeException("FullScreenExtension: can't parse extInfo.json!");
+            throw new RuntimeException("CompanionFileExtension: can't parse extInfo.json!");
         }
     }
 
     @Override
     public AppExtensionInfo getInfo() {
         return extInfo;
+    }
+
+    @Override
+    public void loadJarResources() {
     }
 
     @Override
