@@ -31,7 +31,7 @@ It's just that easy!
 ### Option 2: manual download
 
 You can manually download the extension jar: 
-[ext-iv-companion-text-file-2.3.0.jar](http://www.corbett.ca/apps/ImageViewer/2.3/ext-iv-companion-text-file-2.3.0.jar)
+[ext-iv-companion-text-file-2.3.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/2.3/ext-iv-companion-text-file-2.3.0.jar)
 
 Save it in your ~/.ImageViewer/extensions directory and restart the application.
 
