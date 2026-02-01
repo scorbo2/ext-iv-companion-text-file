@@ -116,11 +116,14 @@ public class ShowTextFileAction extends EnhancedAction {
             log.warning("CompanionTextFile: No text file to show.");
             return false;
         }
-        if ((!textFile.exists() || !textFile.isFile() || !textFile.canRead()) && !createIfNotPresent) {
-            log.warning("CompanionTextFile: Invalid or unreadable text file: " + textFile.getAbsolutePath());
-            return false;
-        }
-        if (!createIfNotPresent) {
+
+        // If the file exists: it has to be readable and a valid text file:
+        if (textFile.exists()) {
+            if (!textFile.isFile() || !textFile.canRead()) {
+                log.warning("CompanionTextFile: Invalid or unreadable text file: " + textFile.getAbsolutePath());
+                return false;
+            }
+
             try {
                 if (!TextFileDetector.isTextFile(textFile)) {
                     getMessageUtil().warning("Not a text file",
@@ -137,7 +140,7 @@ public class ShowTextFileAction extends EnhancedAction {
         }
 
         // If the file doesn't exist, that may or may not be a problem:
-        if (!textFile.exists()) {
+        else {
             // If we were not explicitly told to create it, just inform the user and bail:
             if (!createIfNotPresent) {
                 getMessageUtil().info("File not found",
