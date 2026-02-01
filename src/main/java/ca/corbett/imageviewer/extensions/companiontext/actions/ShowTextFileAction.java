@@ -73,22 +73,22 @@ public class ShowTextFileAction extends EnhancedAction {
         dialog.setReadOnly(false);
         dialog.setVisible(true);
 
-        // Save the results if the user okayed the dialog and made changes:
-        if (dialog.wasOkayed() && !text.equals(dialog.getText())) {
+        // Save the results if the user okayed the dialog:
+        if (dialog.wasOkayed()) {
             try {
                 FileSystemUtil.writeStringToFile(dialog.getText(), textFile);
+
+                // Force a refresh if this is a new file:
+                // (this will allow our hyperlink label to get added to the thumb panel)
+                // (I'd rather just surgically do that here, because we know only one thumb panel
+                //  needs updating, but there's no avenue in the parent application to get to it from here, so...)
+                if (fileWasCreated) {
+                    MainWindow.getInstance().reload();
+                }
             }
             catch (IOException ioe) {
                 getMessageUtil().error("Problem saving companion text file: " + ioe.getMessage(), "Save Error", ioe);
             }
-        }
-
-        // Force a refresh if this is a new file:
-        // (this will allow our hyperlink label to get added to the thumb panel)
-        // (I'd rather just surgically do that here, because we know only one thumb panel
-        //  needs updating, but there's no avenue in the parent application to get to it from here, so...)
-        if (dialog.wasOkayed() && fileWasCreated) {
-            MainWindow.getInstance().reload();
         }
     }
 
@@ -97,7 +97,8 @@ public class ShowTextFileAction extends EnhancedAction {
      */
     private String getFileContents() {
         try {
-            return FileSystemUtil.readFileToString(textFile);
+            // It's possible the file doesn't exist yet (if createIfNotPresent is true):
+            return textFile.exists() ? FileSystemUtil.readFileToString(textFile) : "";
         }
         catch (IOException ioe) {
             log.log(Level.SEVERE, "Error reading companion text file: " + textFile.getAbsolutePath(), ioe);
@@ -148,20 +149,14 @@ public class ShowTextFileAction extends EnhancedAction {
                 return false;
             }
 
-            // Otherwise, initialize the file with empty contents:
-            try {
-                FileSystemUtil.writeStringToFile("", textFile);
-                fileWasCreated = true; // flag this so we can force a refresh later if the dialog is okayed
-            }
-            catch (IOException ioe) {
-                getMessageUtil().error("File creation error",
-                                       "Problem creating companion text file: " + ioe.getMessage(),
-                                       ioe);
-                return false;
-            }
+            // Otherwise, just let it fall through and return true.
+            // The file will get created if/when the user okays the dialog.
+            //
+            // We will, however, note that the file is being created, so we can
+            // force a refresh later:
+            fileWasCreated = true;
         }
 
-        // If we get here, the file is either valid, or we have created it successfully:
         return true;
     }
 
