@@ -1,14 +1,20 @@
 package ca.corbett.imageviewer.extensions.companiontext;
 
 import ca.corbett.extensions.AppExtensionInfo;
+import ca.corbett.extras.EnhancedAction;
 import ca.corbett.extras.LookAndFeelManager;
 import ca.corbett.extras.RedispatchingMouseAdapter;
 import ca.corbett.extras.image.ImageUtil;
+import ca.corbett.extras.io.KeyStrokeManager;
 import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.IntegerProperty;
+import ca.corbett.extras.properties.KeyStrokeProperty;
 import ca.corbett.imageviewer.AppConfig;
 import ca.corbett.imageviewer.extensions.ImageViewerExtension;
+import ca.corbett.imageviewer.extensions.companiontext.actions.ShowCurrentAction;
 import ca.corbett.imageviewer.extensions.companiontext.actions.ShowTextFileAction;
+import ca.corbett.imageviewer.ui.MainWindow;
+import ca.corbett.imageviewer.ui.ReservedKeyStrokeWorkaround;
 import ca.corbett.imageviewer.ui.ThumbPanel;
 import org.apache.commons.io.FilenameUtils;
 
@@ -70,12 +76,14 @@ public class CompanionFileExtension extends ImageViewerExtension {
     private static final String fontSizePropName = "Thumbnails.Companion files.linkFontSize";
 
     private final AppExtensionInfo extInfo;
+    private final ShowCurrentAction showEditorForCurrentImage;
 
     public CompanionFileExtension() {
         extInfo = AppExtensionInfo.fromExtensionJar(getClass(), EXT_INFO);
         if (extInfo == null) {
             throw new RuntimeException("CompanionFileExtension: can't parse extInfo.json!");
         }
+        showEditorForCurrentImage = new ShowCurrentAction("Companion text file...");
     }
 
     @Override
@@ -96,7 +104,29 @@ public class CompanionFileExtension extends ImageViewerExtension {
     protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new IntegerProperty(fontSizePropName, "Hyperlink font size", 10, 8, 16, 1));
+        list.add(new KeyStrokeProperty(AppConfig.KEYSTROKE_PREFIX + "Companion text file.showEditor",
+                                       "Text editor:",
+                                       KeyStrokeManager.parseKeyStroke("Ctrl+T"),
+                                       showEditorForCurrentImage)
+                     .setAllowBlank(true)
+                     .setHelpText("<html>Shows the companion text file for the selected image.<br>"
+                                      + "Will create a new empty text file if none exists.</html>")
+                     .addFormFieldGenerationListener(new ReservedKeyStrokeWorkaround()));
         return list;
+    }
+
+    /**
+     * Overridden so we can add a menu item to the Edit menu for launching the text editor
+     * for the currently selected image.
+     */
+    @Override
+    public List<EnhancedAction> getMenuActions(String topLevelMenu, MainWindow.BrowseMode browseMode) {
+        // Note: we don't care about browseMode here, we always want to add our action to the Edit menu.
+        List<EnhancedAction> actions = new ArrayList<>();
+        if ("Edit".equals(topLevelMenu)) {
+            actions.add(showEditorForCurrentImage);
+        }
+        return actions;
     }
 
     /**
