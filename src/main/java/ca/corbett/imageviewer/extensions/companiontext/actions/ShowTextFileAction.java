@@ -87,7 +87,7 @@ public class ShowTextFileAction extends EnhancedAction {
                 }
             }
             catch (IOException ioe) {
-                getMessageUtil().error("Problem saving companion text file: " + ioe.getMessage(), "Save Error", ioe);
+                getMessageUtil().error("Save Error", "Problem saving companion text file: " + ioe.getMessage(), ioe);
             }
         }
     }
