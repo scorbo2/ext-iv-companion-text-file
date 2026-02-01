@@ -32,10 +32,10 @@ public class ShowCurrentAction extends EnhancedAction {
         // Figure out where the companion text file should live:
         // (it's no problem if it's not there, our ShowTextFileAction will handle that)
         File imageFile = currentImage.getImageFile();
-        File testFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName()) + ".txt");
+        File textFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName()) + ".txt");
 
         // Now we can delegate to ShowTextFileAction with the createIfNotPresent option set to true:
-        ShowTextFileAction action = new ShowTextFileAction(testFile);
+        ShowTextFileAction action = new ShowTextFileAction(textFile);
         action.setCreateIfNotPresent(true);
         action.actionPerformed(e);
     }
