@@ -58,7 +58,7 @@ public class ShowTextFileAction extends EnhancedAction {
             text = FileSystemUtil.readFileToString(textFile);
         }
         catch (IOException ioe) {
-            text = ioe.getMessage();
+            text = ioe.getMessage() == null ? "" : ioe.getMessage();
             log.log(Level.SEVERE, "Error reading companion text file: " + textFile.getAbsolutePath(), ioe);
         }
         PopupTextDialog dialog = new PopupTextDialog(MainWindow.getInstance(), title, text, true);
@@ -69,7 +69,7 @@ public class ShowTextFileAction extends EnhancedAction {
                 FileSystemUtil.writeStringToFile(dialog.getText(), textFile);
             }
             catch (IOException ioe) {
-                getMessageUtil().error("Problem saving companion text file: " + ioe.getMessage());
+                getMessageUtil().error("Problem saving companion text file: " + ioe.getMessage(), "Save Error", ioe);
             }
         }
     }

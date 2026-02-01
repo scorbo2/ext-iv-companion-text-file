@@ -48,6 +48,12 @@ import java.util.logging.Logger;
  *     You can find it on the "Thumbnails" tab of the properties dialog after enabling
  *     this extension.
  * </p>
+ * <p>
+ *     <B>Important note about case-sensitive filesystems:</B> we expect and require the
+ *     "txt" extension to be lowercase. If you create a text file with any other
+ *     case (example: "test.TXT" or "test.Txt"), the file will be ignored by this extension
+ *     and treated as an alien file by the parent application.
+ * </p>
  *
  * @author <a href="https://github.com/scorbo2">scorbo2</a>
  */
@@ -200,6 +206,13 @@ public class CompanionFileExtension extends ImageViewerExtension {
             return false;
         }
 
+        // Wonky special case: if we ever get a file named ".txt" (no base name), just
+        // return false here. I've never seen this actually happen, but it came up as a possible
+        // edge case during code review, and it would break the code below, so let's handle it.
+        if (name.length() == 4) {
+            return false;
+        }
+
         // Now make sure there's an image file with a matching base name.
         // (unfortunately, we have to walk the entire directory to find out)
         Path dir = candidateFile.toPath().getParent();
@@ -234,13 +247,9 @@ public class CompanionFileExtension extends ImageViewerExtension {
         List<File> companions = new ArrayList<>();
 
         // Check if a matching .txt file exists in same dir:
-        String[] testExtensions = {".txt", ".TXT", ".Txt"}; // case-sensitive file systems are painful
-        for (String ext : testExtensions) {
-            File testFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName()) + ext);
-            if (testFile.exists()) {
-                companions.add(testFile);
-                break; // debatable, but we will take the first one we find
-            }
+        File testFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName()) + ".txt");
+        if (testFile.exists()) {
+            companions.add(testFile);
         }
 
         return companions;
