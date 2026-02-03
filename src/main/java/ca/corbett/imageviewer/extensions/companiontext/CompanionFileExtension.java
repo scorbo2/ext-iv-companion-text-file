@@ -104,8 +104,8 @@ public class CompanionFileExtension extends ImageViewerExtension {
     protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new IntegerProperty(fontSizePropName, "Hyperlink font size", 10, 8, 16, 1));
-        list.add(new KeyStrokeProperty(AppConfig.KEYSTROKE_PREFIX + "Companion text file.showEditor",
-                                       "Text editor:",
+        list.add(new KeyStrokeProperty(AppConfig.KEYSTROKE_MISC_PREFIX + "showCompanionTextEditor",
+                                       "Companion text editor:",
                                        KeyStrokeManager.parseKeyStroke("Ctrl+T"),
                                        showEditorForCurrentImage)
                      .setAllowBlank(true)
