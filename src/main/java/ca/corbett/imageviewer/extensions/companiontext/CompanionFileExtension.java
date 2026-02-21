@@ -14,7 +14,6 @@ import ca.corbett.imageviewer.extensions.ImageViewerExtension;
 import ca.corbett.imageviewer.extensions.companiontext.actions.ShowCurrentAction;
 import ca.corbett.imageviewer.extensions.companiontext.actions.ShowTextFileAction;
 import ca.corbett.imageviewer.ui.MainWindow;
-import ca.corbett.imageviewer.ui.ReservedKeyStrokeWorkaround;
 import ca.corbett.imageviewer.ui.ThumbPanel;
 import org.apache.commons.io.FilenameUtils;
 
@@ -109,9 +108,9 @@ public class CompanionFileExtension extends ImageViewerExtension {
                                        KeyStrokeManager.parseKeyStroke("Ctrl+T"),
                                        showEditorForCurrentImage)
                      .setAllowBlank(true)
+                     .setReservedKeyStrokes(AppConfig.RESERVED_KEYSTROKES)
                      .setHelpText("<html>Shows the companion text file for the selected image.<br>"
-                                      + "Will create a new empty text file if none exists.</html>")
-                     .addFormFieldGenerationListener(new ReservedKeyStrokeWorkaround()));
+                                      + "Will create a new empty text file if none exists.</html>"));
         return list;
     }
 
