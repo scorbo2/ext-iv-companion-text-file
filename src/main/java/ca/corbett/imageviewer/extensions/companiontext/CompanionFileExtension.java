@@ -1,13 +1,20 @@
 package ca.corbett.imageviewer.extensions.companiontext;
 
-import ca.corbett.extras.LookAndFeelManager;
-import ca.corbett.imageviewer.AppConfig;
-import ca.corbett.imageviewer.extensions.ImageViewerExtension;
-import ca.corbett.imageviewer.ui.ThumbPanel;
 import ca.corbett.extensions.AppExtensionInfo;
+import ca.corbett.extras.EnhancedAction;
+import ca.corbett.extras.LookAndFeelManager;
+import ca.corbett.extras.RedispatchingMouseAdapter;
+import ca.corbett.extras.image.ImageUtil;
+import ca.corbett.extras.io.KeyStrokeManager;
 import ca.corbett.extras.properties.AbstractProperty;
 import ca.corbett.extras.properties.IntegerProperty;
-import ca.corbett.extras.RedispatchingMouseAdapter;
+import ca.corbett.extras.properties.KeyStrokeProperty;
+import ca.corbett.imageviewer.AppConfig;
+import ca.corbett.imageviewer.extensions.ImageViewerExtension;
+import ca.corbett.imageviewer.extensions.companiontext.actions.ShowCurrentAction;
+import ca.corbett.imageviewer.extensions.companiontext.actions.ShowTextFileAction;
+import ca.corbett.imageviewer.ui.MainWindow;
+import ca.corbett.imageviewer.ui.ThumbPanel;
 import org.apache.commons.io.FilenameUtils;
 
 import javax.swing.JLabel;
@@ -16,7 +23,13 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.FlowLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -25,8 +38,9 @@ import java.util.logging.Logger;
 /**
  * Represents an extension to ImageViewer that allows you to put a txt file alongside
  * an image, and have that file be displayable by adding a hyperlink to the top of the
- * thumbnail panel. If the image is renamed, moved, copied, symlinked, or deleted, this extension
- * will make sure the same operation happens to the companion file as needed.
+ * thumbnail panel. By marking this text file as a "companion" file, the parent application
+ * will ensure that if the image is renamed, moved, copied, symlinked, or deleted, the companion
+ * file will be treated the same way.
  * <p>
  *     <b>Example:</b> given an image named abcd.jpg, you can create a text file in the
  *     same directory with the name abcd.txt - this extension will detect the existence of
@@ -39,23 +53,36 @@ import java.util.logging.Logger;
  *     You can find it on the "Thumbnails" tab of the properties dialog after enabling
  *     this extension.
  * </p>
+ * <p>
+ *     <B>Important note about case-sensitive filesystems:</B> we expect and require the
+ *     "txt" extension to be lowercase. If you create a text file with any other
+ *     case (example: "test.TXT" or "test.Txt"), the file will be ignored by this extension
+ *     and treated as an alien file by the parent application.
+ * </p>
  *
- * @author scorbo2
+ * @author <a href="https://github.com/scorbo2">scorbo2</a>
  */
 public class CompanionFileExtension extends ImageViewerExtension {
 
     private static final Logger logger = Logger.getLogger(CompanionFileExtension.class.getName());
 
+    public static final String WRAPPER_PROP = "companionFileWrapperPanel";
+    public static final String LABEL_PROP = "companionTextFileLabel";
+    public static final String ACTION_PROP = "companionTextFileAction";
+    public static final String LABEL_TEXT = "[text]";
+
     private static final String EXT_INFO = "/ca/corbett/imageviewer/extensions/companiontext/extInfo.json";
     private static final String fontSizePropName = "Thumbnails.Companion files.linkFontSize";
 
     private final AppExtensionInfo extInfo;
+    private final ShowCurrentAction showEditorForCurrentImage;
 
     public CompanionFileExtension() {
         extInfo = AppExtensionInfo.fromExtensionJar(getClass(), EXT_INFO);
         if (extInfo == null) {
             throw new RuntimeException("CompanionFileExtension: can't parse extInfo.json!");
         }
+        showEditorForCurrentImage = new ShowCurrentAction("Companion text file...");
     }
 
     @Override
@@ -67,11 +94,38 @@ public class CompanionFileExtension extends ImageViewerExtension {
     public void loadJarResources() {
     }
 
+    /**
+     * Our only configuration property is the font size for the hyperlink labels.
+     * Future versions of the extension may add properties to customize the font
+     * used in the popup text editor dialog.
+     */
     @Override
     protected List<AbstractProperty> createConfigProperties() {
         List<AbstractProperty> list = new ArrayList<>();
         list.add(new IntegerProperty(fontSizePropName, "Hyperlink font size", 10, 8, 16, 1));
+        list.add(new KeyStrokeProperty(AppConfig.KEYSTROKE_MISC_PREFIX + "showCompanionTextEditor",
+                                       "Companion text editor:",
+                                       KeyStrokeManager.parseKeyStroke("Ctrl+T"),
+                                       showEditorForCurrentImage)
+                     .setAllowBlank(true)
+                     .setReservedKeyStrokes(AppConfig.RESERVED_KEYSTROKES)
+                     .setHelpText("<html>Shows the companion text file for the selected image.<br>"
+                                      + "Will create a new empty text file if none exists.</html>"));
         return list;
+    }
+
+    /**
+     * Overridden so we can add a menu item to the Edit menu for launching the text editor
+     * for the currently selected image.
+     */
+    @Override
+    public List<EnhancedAction> getMenuActions(String topLevelMenu, MainWindow.BrowseMode browseMode) {
+        // Note: we don't care about browseMode here, we always want to add our action to the Edit menu.
+        List<EnhancedAction> actions = new ArrayList<>();
+        if ("Edit".equals(topLevelMenu)) {
+            actions.add(showEditorForCurrentImage);
+        }
+        return actions;
     }
 
     /**
@@ -94,23 +148,27 @@ public class CompanionFileExtension extends ImageViewerExtension {
             // Assuming there will be other CompanionFileExtensions for different companion file
             // types. It's therefore possible that one of the others has already created the wrapper
             // panel, and in that case we can just use it. If not, we will create it.
-            JPanel wrapperPanel = (JPanel)thumbPanel.getExtraProperty("companionFileWrapperPanel");
+            JPanel wrapperPanel = (JPanel)thumbPanel.getExtraProperty(WRAPPER_PROP);
             if (wrapperPanel == null) {
                 wrapperPanel = new JPanel();
                 wrapperPanel.addMouseListener(new RedispatchingMouseAdapter());
                 wrapperPanel.setBackground(thumbPanel.getBackground());
-                thumbPanel.setExtraProperty("companionFileWrapperPanel", wrapperPanel);
+                thumbPanel.setExtraProperty(WRAPPER_PROP, wrapperPanel); // So other extensions can use it
                 wrapperPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
             }
 
-            if (textFile.exists()) {
-                JLabel textFileLabel = createLabel("[text]");
-                CompanionFileMouseListener listener = new CompanionFileMouseListener(textFile);
-                textFileLabel.addMouseListener(listener);
-                thumbPanel.setExtraProperty("companionTextFileLabel", textFileLabel);
-                thumbPanel.setExtraProperty("companionTextFileLabelListener", listener);
-                wrapperPanel.add(textFileLabel);
-            }
+            final ShowTextFileAction action = new ShowTextFileAction(textFile);
+            JLabel textFileLabel = createLabel(LABEL_TEXT);
+            textFileLabel.addMouseListener(new RedispatchingMouseAdapter()); // forward mouse events to parent
+            textFileLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    action.actionPerformed(null);
+                }
+            });
+            thumbPanel.setExtraProperty(LABEL_PROP, textFileLabel); // For updating color when selected
+            thumbPanel.setExtraProperty(ACTION_PROP, action); // For updating text file if renamed/moved
+            wrapperPanel.add(textFileLabel);
 
             thumbPanel.add(wrapperPanel, BorderLayout.NORTH);
         }
@@ -125,7 +183,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
      */
     @Override
     public void thumbPanelSelectionChanged(ThumbPanel thumbPanel, boolean isSelected) {
-        JLabel textFileLabel = (JLabel)thumbPanel.getExtraProperty("companionTextFileLabel");
+        JLabel textFileLabel = (JLabel)thumbPanel.getExtraProperty(LABEL_PROP);
         if (textFileLabel != null) {
             if (isSelected) {
                 textFileLabel.setForeground(LookAndFeelManager.getLafColor("textHighlightText", Color.BLUE));
@@ -134,7 +192,7 @@ public class CompanionFileExtension extends ImageViewerExtension {
                 textFileLabel.setForeground(LookAndFeelManager.getLafColor("Component.linkColor", Color.BLUE));
             }
         }
-        JPanel wrapperPanel = (JPanel)thumbPanel.getExtraProperty("companionFileWrapperPanel");
+        JPanel wrapperPanel = (JPanel)thumbPanel.getExtraProperty(WRAPPER_PROP);
         if (wrapperPanel != null) {
             wrapperPanel.setBackground(thumbPanel.getBackground());
         }
@@ -154,16 +212,17 @@ public class CompanionFileExtension extends ImageViewerExtension {
     @Override
     public void thumbPanelRenamed(ThumbPanel thumbPanel, File newFile) {
         File textFile = new File(newFile.getParentFile(), FilenameUtils.getBaseName(newFile.getName()) + ".txt");
-        CompanionFileMouseListener textLabelListener = (CompanionFileMouseListener)thumbPanel.getExtraProperty(
-            "companionTextFileLabelListener");
-        if (textLabelListener != null) {
-            textLabelListener.setFile(textFile);
+        ShowTextFileAction action = (ShowTextFileAction)thumbPanel.getExtraProperty(ACTION_PROP);
+        if (action != null) {
+            action.setTextFile(textFile);
         }
     }
 
     /**
      * We want to prevent our companion files from being flagged as aliens, so we hook into
-     * this extension point and return true if the given file is a text file.
+     * this extension point, which is invoked when the parent application is categorizing files.
+     * We will return true if the given file is a text file, AND if there is a matching image
+     * file of any supported type with the same base name in the same directory.
      *
      * @param candidateFile The file in question.
      * @return true if the file is a companion text file.
@@ -171,36 +230,53 @@ public class CompanionFileExtension extends ImageViewerExtension {
     @Override
     public boolean isCompanionFile(File candidateFile) {
         // First make sure it's a file that we would work with:
-        String name = candidateFile.getName().toLowerCase();
-        if (!name.endsWith(".txt")) {
+        String name = candidateFile.getName();
+        if (!name.toLowerCase().endsWith(".txt")) {
             return false;
         }
 
-        // Now make sure there's an image file with a matching name.
-        // I hate that this code is case-sensitive...
-        //
-        // TODO this logic should move into the application
-        //      basically we should never get this request if it DOESN'T match the base name of an image.
-        String[] imageExtensions = new String[]{"gif", "GIF", "jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "tiff", "bmp"};
-        File dir = candidateFile.getParentFile();
-        String basename = FilenameUtils.getBaseName(candidateFile.getName());
-        boolean matchingImageFound = false;
-        for (String ext : imageExtensions) {
-            File test = new File(dir, basename + "." + ext);
-            if (test.exists()) {
-                matchingImageFound = true;
-                break;
+        // Wonky special case: if we ever get a file named ".txt" (no base name), just
+        // return false here. I've never seen this actually happen, but it came up as a possible
+        // edge case during code review, and it would break the code below, so let's handle it.
+        if (name.length() == 4) {
+            return false;
+        }
+
+        // Now make sure there's an image file with a matching base name.
+        // (unfortunately, we have to walk the entire directory to find out)
+        Path dir = candidateFile.toPath().getParent();
+        String baseName = name.substring(0, name.lastIndexOf('.'));
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, baseName + ".*")) {
+            for (Path entry : stream) {
+                File testFile = entry.toFile();
+                if (ImageUtil.isImageFile(testFile)) {
+                    return true;
+                }
             }
         }
-        return matchingImageFound;
+        catch (IOException ioe) {
+            logger.log(Level.SEVERE, "Problem checking for companion image file for: "
+                           + candidateFile.getAbsolutePath(),
+                       ioe);
+        }
+
+        return false;
     }
 
+    /**
+     * Given a candidate image file, the parent application wants to know what
+     * file(s) we consider to be companions to that file. We will return a list
+     * of at most one file - the matching txt file if it exists.
+     *
+     * @param imageFile Any image file.
+     * @return A list of companion files (possibly empty).
+     */
     @Override
     public List<File> getCompanionFiles(File imageFile) {
         List<File> companions = new ArrayList<>();
 
         // Check if a matching .txt file exists in same dir:
-        File testFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName())+".txt");
+        File testFile = new File(imageFile.getParentFile(), FilenameUtils.getBaseName(imageFile.getName()) + ".txt");
         if (testFile.exists()) {
             companions.add(testFile);
         }

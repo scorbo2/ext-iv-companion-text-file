@@ -30,8 +30,8 @@ It's just that easy!
 
 ### Option 2: manual download
 
-You can manually download the extension jar: 
-[ext-iv-companion-text-file-2.3.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/2.3/ext-iv-companion-text-file-2.3.0.jar)
+You can manually download the extension jar:
+[ext-iv-companion-text-file-3.0.0.jar](http://www.corbett.ca/apps/ImageViewer/extensions/3.0/ext-iv-companion-text-file-3.0.0.jar)
 
 Save it in your ~/.ImageViewer/extensions directory and restart the application.
 
@@ -45,13 +45,13 @@ cd ext-iv-companion-text-file
 mvn package
 
 # Copy the result to extensions dir:
-cp target/ext-iv-companion-text-file-2.3.0-SNAPSHOT.jar ~/.ImageViewer/extensions
+cp target/ext-iv-companion-text-file-3.0.0-SNAPSHOT.jar ~/.ImageViewer/extensions
 ```
 
 ## Requirements
 
-Imageviewer 2.3 or higher.
+This extension will work with any ImageViewer 3.x release.
 
 ## License
 
-Imageviewer and this extension are made available under the MIT license: https://opensource.org/license/mit
+ImageViewer and this extension are made available under the MIT license: https://opensource.org/license/mit
